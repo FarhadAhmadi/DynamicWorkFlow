@@ -47,6 +47,4 @@ namespace WorkFlow.RuleInterpreter.Helpers
             return input;
         }
     }
-
-
 }

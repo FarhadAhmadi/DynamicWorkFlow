@@ -1,13 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json.Linq;
 using WorkFlow.DTO;
-using WorkFlow.Exceptions;
 using WorkFlow.Persistence;
 using WorkFlow.RuleInterpreter.StepHandlers.AssignStep;
 using WorkFlow.RuleInterpreter.StepHandlers.CalculateDurationStep;
 using WorkFlow.RuleInterpreter.StepHandlers.FetchEntityListStep;
 using WorkFlow.RuleInterpreter.StepHandlers.FetchSingleEntityStep;
 using WorkFlow.RuleInterpreter.StepHandlers.IfStep;
+using WorkFlow.RuleInterpreter.StepHandlers.LogStep;
 
 namespace WorkFlow.RuleInterpreter
 {
@@ -28,7 +27,11 @@ namespace WorkFlow.RuleInterpreter
         public void SetVariable(string name, object value)
         {
             if (string.IsNullOrWhiteSpace(name))
+            {
+                Logger.Log($"Variable name cannot be null or whitespace.", LogSource.Rule, LogLevel.Error);
                 throw new ArgumentException("Variable name cannot be null or whitespace.", nameof(name));
+            }
+                
 
             _variables[name] = value;
         }
@@ -40,6 +43,8 @@ namespace WorkFlow.RuleInterpreter
 
         public async Task<RuleExecutionResult> ExecuteAsync(dynamic rule)
         {
+            Logger.Log($"Rule Info: '{rule.name}'", LogSource.Rule, LogLevel.Info);
+
             foreach (var step in rule.steps)
             {
                 await ExecuteStepAsync(step);
@@ -60,50 +65,39 @@ namespace WorkFlow.RuleInterpreter
         {
             string action = step.action.ToString();
 
-            // Log step entry
-            AddLog($"[ExecuteStep] Starting action: '{action}'");
-
             try
             {
                 switch (action)
                 {
                     case "fetch":
-                        AddLog("[fetch] Executing fetch single entity.");
                         await new FetchSingleEntityStep(_dbContext, _variables).ExecuteAsync(step);
                         break;
 
                     case "fetchList":
-                        AddLog("[fetchList] Executing fetch list of entities.");
                         await new FetchEntityListStep(_dbContext, _variables).ExecuteAsync(step);
                         break;
 
                     case "foreach":
-                        AddLog("[foreach] Starting foreach loop.");
                         await ExecuteForEachAsync(step);
                         break;
 
                     case "if":
-                        AddLog("[if] Evaluating condition.");
                         await ExecuteIfAsync(step);
                         break;
 
                     case "assign":
-                        AddLog($"[assign] Assigning variable: {step.variable}");
                         await new AssignStep(_variables).ExecuteAsync(step);
                         break;
 
                     case "calculateDuration":
-                        AddLog("[calculateDuration] Calculating duration.");
                         await new CalculatedurationStep(_variables).ExecuteAsync(step);
                         break;
 
                     case "break":
-                        AddLog("[break] Breaking loop.");
                         _variables["__BreakSignal"] = true;
                         break;
 
                     case "continue":
-                        AddLog("[continue] Continuing loop.");
                         _variables["__ContinueSignal"] = true;
                         break;
 
@@ -112,36 +106,22 @@ namespace WorkFlow.RuleInterpreter
                         var reason = step.reason?.ToString() ?? "Stopped by rule.";
                         _variables["Status"] = status;
                         _variables["Reason"] = reason;
-                        AddLog($"[stop] Execution stopped. Status: {status}, Reason: {reason}");
                         break;
 
                     case "log":
-                        string message = step.message?.ToString() ?? "(empty log)";
-                        AddLog($"[log] {message}");
+                        await new LogStep(_variables).ExecuteAsync(step);
                         break;
 
                     default:
+                        Logger.Log($"Unknown action: {action}", LogSource.Rule, LogLevel.Error);
                         throw new InvalidOperationException($"Unknown action: {action}");
                 }
             }
             catch (Exception ex)
             {
-                AddLog($"[error] Exception in action '{action}': {ex.Message}");
+                Logger.Log($"Exception in action '{action}': {ex.Message}", LogSource.Rule, LogLevel.Error);
                 throw;
             }
-
-            AddLog($"[ExecuteStep] Completed action: '{action}'");
-        }
-
-        private void AddLog(string message)
-        {
-            if (!_variables.ContainsKey("Logs"))
-            {
-                _variables["Logs"] = new List<string>();
-            }
-
-            var logs = _variables["Logs"] as List<string>;
-            logs.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
         }
 
         #endregion
@@ -161,21 +141,11 @@ namespace WorkFlow.RuleInterpreter
             {
                 _variables[varName] = item;
 
-                try
+                foreach (var innerStep in body)
                 {
-                    foreach (var innerStep in body)
-                    {
-                        await ExecuteStepAsync(innerStep);
-                    }
+                    await ExecuteStepAsync(innerStep);
                 }
-                catch (ContinueException)
-                {
-                    continue;
-                }
-                catch (BreakException)
-                {
-                    break;
-                }
+
             }
         }
 

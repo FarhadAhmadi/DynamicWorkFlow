@@ -3,7 +3,7 @@
     "steps": [
         {
             "action": "log",
-            "message": "Rule B started for person: @person.Id - @person.Name"
+            "message": "[Rule B] Starting eligibility check for Person ID: @person.Id, Name: @person.Name, Age: @person.Age"
         },
         {
             "action": "fetchList",
@@ -13,7 +13,7 @@
         },
         {
             "action": "log",
-            "message": "Fetched @announcements.Count announcements."
+            "message": "[Rule B] Fetched total @announcements.Count announcements for evaluation."
         },
         {
             "action": "assign",
@@ -27,7 +27,7 @@
             "body": [
                 {
                     "action": "log",
-                    "message": "Checking announcement: @announcement.Id - RequiredAge: @announcement.RequiredAge, WorkType: @announcement.WorkType"
+                    "message": "[Rule B] Evaluating announcement ID: @announcement.Id | RequiredAge: @announcement.RequiredAge | RequiredWorkType: @announcement.WorkType"
                 },
                 {
                     "action": "if",
@@ -39,7 +39,7 @@
                     "then": [
                         {
                             "action": "log",
-                            "message": "Person age (@person.Age) >= RequiredAge. Fetching person's work history..."
+                            "message": "[Rule B] Person's age (@person.Age) meets requirement (>= @announcement.RequiredAge). Fetching work histories..."
                         },
                         {
                             "action": "fetchList",
@@ -49,7 +49,7 @@
                         },
                         {
                             "action": "log",
-                            "message": "Fetched @personWorkHistories.Count work history records."
+                            "message": "[Rule B] Retrieved @personWorkHistories.Count work history records for Person ID: @person.Id"
                         },
                         {
                             "action": "foreach",
@@ -58,7 +58,7 @@
                             "body": [
                                 {
                                     "action": "log",
-                                    "message": "Checking history: @history.Id with WorkType: @history.WorkType"
+                                    "message": "[Rule B] Checking work history ID: @history.Id | WorkType: @history.WorkType | Start: @history.StartDate | End: @history.EndDate"
                                 },
                                 {
                                     "action": "if",
@@ -70,7 +70,7 @@
                                     "then": [
                                         {
                                             "action": "log",
-                                            "message": "WorkType matches announcement. Calculating duration..."
+                                            "message": "[Rule B] WorkType matches announcement requirement. Calculating experience duration in years..."
                                         },
                                         {
                                             "action": "calculateDuration",
@@ -81,7 +81,7 @@
                                         },
                                         {
                                             "action": "log",
-                                            "message": "Calculated duration: @DurationInYears years"
+                                            "message": "[Rule B] Experience duration for history ID @history.Id: @DurationInYears years"
                                         },
                                         {
                                             "action": "if",
@@ -93,7 +93,7 @@
                                             "then": [
                                                 {
                                                     "action": "log",
-                                                    "message": "Valid announcement match found (>= 5 years experience)."
+                                                    "message": "[Rule B] Found qualifying announcement match: >= 5 years experience in required WorkType."
                                                 },
                                                 {
                                                     "action": "assign",
@@ -105,7 +105,7 @@
                                             "else": [
                                                 {
                                                     "action": "log",
-                                                    "message": "Duration is less than 5 years. Continuing..."
+                                                    "message": "[Rule B] Experience duration less than 5 years for this history. Continuing evaluation..."
                                                 },
                                                 { "action": "continue" }
                                             ]
@@ -114,7 +114,7 @@
                                     "else": [
                                         {
                                             "action": "log",
-                                            "message": "WorkType does not match. Skipping..."
+                                            "message": "[Rule B] WorkType does not match announcement requirement. Skipping this history."
                                         },
                                         { "action": "continue" }
                                     ]
@@ -125,7 +125,7 @@
                     "else": [
                         {
                             "action": "log",
-                            "message": "Person age < RequiredAge. Skipping announcement."
+                            "message": "[Rule B] Person age (@person.Age) does not meet announcement required age (@announcement.RequiredAge). Skipping announcement."
                         },
                         { "action": "continue" }
                     ]
@@ -142,7 +142,7 @@
             "then": [
                 {
                     "action": "log",
-                    "message": "Rule B passed: Valid announcement match found."
+                    "message": "[Rule B] Rule passed: Person matched an announcement with required experience."
                 },
                 {
                     "action": "stop",
@@ -153,7 +153,7 @@
             "else": [
                 {
                     "action": "log",
-                    "message": "Rule B failed: No valid announcements matched."
+                    "message": "[Rule B] Rule failed: No announcements matched or insufficient experience."
                 },
                 {
                     "action": "stop",

@@ -3,7 +3,7 @@
     "steps": [
         {
             "action": "log",
-            "message": "Rule A started for person: @person.Id - @person.Name"
+            "message": "[Rule A] Starting validation for Person ID: @person.Id, Name: @person.Name"
         },
         {
             "action": "fetchList",
@@ -13,7 +13,7 @@
         },
         {
             "action": "log",
-            "message": "Fetched @histories.Count work history records."
+            "message": "[Rule A] Retrieved @histories.Count work history records for Person ID: @person.Id"
         },
         {
             "action": "assign",
@@ -27,7 +27,7 @@
             "body": [
                 {
                     "action": "log",
-                    "message": "Checking history record: @history.Id at location @history.Location"
+                    "message": "[Rule A] Processing history ID: @history.Id | Location: @history.Location | Start: @history.StartDate | End: @history.EndDate"
                 },
                 {
                     "action": "if",
@@ -39,7 +39,7 @@
                     "then": [
                         {
                             "action": "log",
-                            "message": "History is located in تهران, calculating duration..."
+                            "message": "[Rule A] Work history ID @history.Id is in location تهران. Proceeding to calculate duration..."
                         },
                         {
                             "action": "calculateDuration",
@@ -50,7 +50,7 @@
                         },
                         {
                             "action": "log",
-                            "message": "Calculated duration in days: @DurationInDays"
+                            "message": "[Rule A] Duration for history ID @history.Id: @DurationInDays days"
                         },
                         {
                             "action": "if",
@@ -62,7 +62,7 @@
                             "then": [
                                 {
                                     "action": "log",
-                                    "message": "Duration is >= 365 days, checking employer confirmation..."
+                                    "message": "[Rule A] Duration is >= 365 days. Verifying employer confirmation for Employer ID: @history.Employer.Id"
                                 },
                                 {
                                     "action": "fetch",
@@ -72,7 +72,7 @@
                                 },
                                 {
                                     "action": "log",
-                                    "message": "Fetched employer @employer.Name - HasConfirmation: @employer.HasConfirmation"
+                                    "message": "[Rule A] Employer fetched: @employer.Name (ID: @employer.Id), HasConfirmation: @employer.HasConfirmation"
                                 },
                                 {
                                     "action": "if",
@@ -84,7 +84,7 @@
                                     "then": [
                                         {
                                             "action": "log",
-                                            "message": "Employer is confirmed. Valid history found."
+                                            "message": "[Rule A] Employer confirmation is true. Valid work history found. Rule A will pass."
                                         },
                                         {
                                             "action": "assign",
@@ -96,11 +96,11 @@
                                     "else": [
                                         {
                                             "action": "log",
-                                            "message": "Employer is not confirmed. Stopping rule."
+                                            "message": "[Rule A] Employer confirmation is false. Rule A will fail for Person ID: @person.Id"
                                         },
                                         {
                                             "action": "stop",
-                                            "reason": "Rule A failed: Employer not confirmed.",
+                                            "reason": "Rule A failed: Employer not confirmed for qualifying history.",
                                             "status": false
                                         }
                                     ]
@@ -109,7 +109,7 @@
                             "else": [
                                 {
                                     "action": "log",
-                                    "message": "Duration is less than 365 days. Continuing loop."
+                                    "message": "[Rule A] Duration is less than 365 days for history ID: @history.Id. Skipping."
                                 },
                                 { "action": "continue" }
                             ]
@@ -118,7 +118,7 @@
                     "else": [
                         {
                             "action": "log",
-                            "message": "Location is not تهران. Skipping this history."
+                            "message": "[Rule A] Location of history ID: @history.Id is not تهران. Skipping."
                         },
                         { "action": "continue" }
                     ]
@@ -135,7 +135,7 @@
             "then": [
                 {
                     "action": "log",
-                    "message": "Rule A passed: Valid تهران history confirmed."
+                    "message": "[Rule A] Rule passed: Found valid work history in تهران with confirmed employer for at least 1 year."
                 },
                 {
                     "action": "stop",
@@ -146,7 +146,7 @@
             "else": [
                 {
                     "action": "log",
-                    "message": "Rule A failed: No valid تهران history found."
+                    "message": "[Rule A] Rule failed: No valid work history in تهران with confirmed employer found."
                 },
                 {
                     "action": "stop",

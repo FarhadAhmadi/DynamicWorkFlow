@@ -9,7 +9,6 @@ namespace WorkFlow.Persistence
         public DbSet<WorkHistory> WorkHistories { get; set; }
         public DbSet<Employer> Employers { get; set; }
         public DbSet<Announcement> Announcements { get; set; }
-        public DbSet<WorkflowResult> WorkflowResults { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

@@ -20,7 +20,7 @@ namespace WorkFlow.Persistence
         {
             #region Seed Sample Data
 
-            Console.WriteLine("Seeding sample data...");
+            Logger.Log("Seeding sample data...");
 
             var employers = new List<Employer>
             {
@@ -56,32 +56,144 @@ namespace WorkFlow.Persistence
                             WorkType = "برنامه‌نویس"
                         }
                     }
-                }
-            };
-
-            string[] names = { "علی رضایی", "مریم موسوی", "حسن کریمی", "نگار اسدی", "رضا قاسمی", "زهرا احمدی", "سینا تقوی", "فاطمه محمدی", "مهدی سلطانی", "لیلا شریفی" };
-
-            for (int i = 0; i < names.Length; i++)
-            {
-                var person = new Person
+                },
+                new()
                 {
-                    Name = names[i],
-                    Age = 22 + i,
+                    Name = "سارا محمدی",
+                    Age = 32,
                     CurrentState = PersonState.A,
                     WorkHistories = new List<WorkHistory>
                     {
                         new()
                         {
-                            Location = iranianCities[random.Next(iranianCities.Length)],
-                            StartDate = DateTime.Now.AddYears(-random.Next(2, 8)),
-                            EndDate = DateTime.Now.AddYears(-random.Next(0, 2)),
-                            Employer = employers[random.Next(employers.Count)],
-                            WorkType = workTypes[random.Next(workTypes.Length)]
+                            Location = "تهران", // ✅ satisfies Rule A
+                            StartDate = new DateTime(2016, 1, 1),
+                            EndDate = new DateTime(2023, 1, 1), // 7 years
+                            Employer = employers.First(e => e.HasConfirmation), // ✅ confirmed employer
+                            WorkType = "برنامه‌نویس" // ✅ matches one of the announcements
                         }
                     }
-                };
-                people.Add(person);
-            }
+                },
+                new()
+                {
+                    Name = "علی جوادی",
+                    Age = 22, // ❌ Announcement requires 25+ or 30+
+                    CurrentState = PersonState.A,
+                    WorkHistories = new List<WorkHistory>
+                    {
+                        new()
+                        {
+                            Location = "تهران", // ✅
+                            StartDate = new DateTime(2020, 1, 1),
+                            EndDate = new DateTime(2023, 1, 1), // ✅ > 1 year
+                            Employer = employers.First(e => e.HasConfirmation),
+                            WorkType = "برنامه‌نویس" // ✅ Matches announcement, but too young
+                        }
+                    }
+                },
+                new()
+                {
+                    Name = "مریم نوروزی",
+                    Age = 35, // ✅ Sufficient age
+                    CurrentState = PersonState.A,
+                    WorkHistories = new List<WorkHistory>
+                    {
+                        new()
+                        {
+                            Location = "تهران", // ✅
+                            StartDate = new DateTime(2010, 1, 1),
+                            EndDate = new DateTime(2020, 1, 1), // ✅ 10 years
+                            Employer = employers.First(e => e.HasConfirmation),
+                            WorkType = "مدیر منابع انسانی" // ❌ No such WorkType in announcements
+                        }
+                    }
+                },
+                new()
+                {
+                    Name = "حسن رضایی",
+                    Age = 40, // ✅
+                    CurrentState = PersonState.A,
+                    WorkHistories = new List<WorkHistory>
+                    {
+                        new()
+                        {
+                            Location = "تهران", // ✅
+                            StartDate = new DateTime(2022, 1, 1),
+                            EndDate = new DateTime(2023, 12, 31), // ❌ only ~2 years
+                            Employer = employers.First(e => e.HasConfirmation),
+                            WorkType = "مهندس عمران" // ✅ Exists in announcement
+                        }
+                    }
+                },
+                new()
+                {
+                    Name = "نرگس قنبری",
+                    Age = 30,
+                    CurrentState = PersonState.A,
+                    WorkHistories = new List<WorkHistory>
+                    {
+                        new()
+                        {
+                            Location = "شیراز", // ❌ Not تهران
+                            StartDate = new DateTime(2016, 1, 1),
+                            EndDate = new DateTime(2022, 1, 1),
+                            Employer = employers.First(e => e.HasConfirmation),
+                            WorkType = "تحلیل‌گر مالی" // ❌ Not listed in any announcement
+                        }
+                    }
+                },
+                new()
+                {
+                    Name = "مهدی کرمی",
+                    Age = 29,
+                    CurrentState = PersonState.A,
+                    WorkHistories = new List<WorkHistory>
+                    {
+                        new()
+                        {
+                            Location = "تهران", // ✅
+                            StartDate = new DateTime(2020, 1, 1),
+                            EndDate = new DateTime(2022, 1, 1), // ❌ 2 years only
+                            Employer = employers.First(e => !e.HasConfirmation), // ❌ Not confirmed
+                            WorkType = "پرستار" // ✅ Exists in announcement
+                        }
+                    }
+                },
+                new()
+                {
+                    Name = "رضا زمانی",
+                    Age = 31,
+                    CurrentState = PersonState.A,
+                    WorkHistories = new List<WorkHistory>
+                    {
+                        new()
+                        {
+                            Location = "مشهد", // ❌ Not تهران
+                            StartDate = new DateTime(2015, 1, 1),
+                            EndDate = new DateTime(2021, 1, 1),
+                            Employer = employers.First(e => e.HasConfirmation),
+                            WorkType = "تحلیل‌گر داده" // ❌ Not listed in announcements
+                        }
+                    }
+                },
+                new()
+                {
+                    Name = "فاطمه عباسی",
+                    Age = 19, // ❌ Too young for any RequiredAge
+                    CurrentState = PersonState.A,
+                    WorkHistories = new List<WorkHistory>
+                    {
+                        new()
+                        {
+                            Location = "تهران", // ✅
+                            StartDate = new DateTime(2023, 1, 1),
+                            EndDate = new DateTime(2023, 6, 1), // ❌ < 1 year
+                            Employer = employers.First(e => e.HasConfirmation),
+                            WorkType = "برنامه‌نویس" // ✅ Exists in announcement
+                        }
+                    }
+                }
+            };
 
             await dbContext.People.AddRangeAsync(people);
             await dbContext.SaveChangesAsync();
@@ -96,7 +208,7 @@ namespace WorkFlow.Persistence
             await dbContext.Announcements.AddRangeAsync(announcements);
             await dbContext.SaveChangesAsync();
 
-            Console.WriteLine("Sample Iranian data seeded successfully.");
+            Logger.Log("Sample Iranian data seeded successfully.");
 
             #endregion
         }

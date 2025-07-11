@@ -31,13 +31,13 @@ public class WorkflowEngine
 
         foreach (var person in people)
         {
-            Log($"Starting workflow for Person {person.Id} - {person.Name}, initial state: {person.CurrentState}");
+            Logger.Log($"Starting workflow for Person {person.Id} - {person.Name}, initial state: {person.CurrentState}");
 
             while (true)
             {
                 if (person.CurrentState == PersonState.Final)
                 {
-                    Log($"Person {person.Id} reached final state. Exiting workflow loop.");
+                    Logger.Log($"Person {person.Id} reached final state. Exiting workflow loop.", LogSource.Engine, LogLevel.Success);
                     break;
                 }
 
@@ -45,7 +45,7 @@ public class WorkflowEngine
 
                 if (!File.Exists(ruleFilePath))
                 {
-                    Log($"Rule file not found: {ruleFilePath}. Exiting workflow for person {person.Id}.");
+                    Logger.Log($"Rule file not found: {ruleFilePath}. Exiting workflow for person {person.Id}.", LogSource.Engine, LogLevel.Error);
                     break;
                 }
 
@@ -53,11 +53,11 @@ public class WorkflowEngine
 
                 _ruleInterpreter.SetVariable("person", person);
 
-                Log($"Executing rule for Person {person.Id} at state {person.CurrentState} using rule file {ruleFilePath}");
+                Logger.Log($"Executing rule for Person {person.Id} at state {person.CurrentState} using rule file {ruleFilePath}");
 
                 var result = await _ruleInterpreter.ExecuteAsync(ruleJson);
 
-                Log($"Rule execution result for Person {person.Id}: Status={result.Status}, Reason='{result.Reason}', CurrentState={person.CurrentState}");
+                Logger.Log($"Rule execution result for Person {person.Id}: Status={result.Status}, Reason='{result.Reason}', CurrentState={person.CurrentState}");
 
                 if (result.Status)
                 {
@@ -65,18 +65,18 @@ public class WorkflowEngine
 
                     if (nextState != null)
                     {
-                        Log($"Transitioning Person {person.Id} from state {person.CurrentState} to {nextState}");
+                        Logger.Log($"Transitioning Person {person.Id} from state {person.CurrentState} to {nextState}",LogSource.Engine,LogLevel.Success);
                         person.CurrentState = nextState.Value;
                     }
                     else
                     {
-                        Log($"No next state found for Person {person.Id}. Final state reached.");
+                        Logger.Log($"No next state found for Person {person.Id}. Final state reached.", LogSource.Engine, LogLevel.Success);
                         break;
                     }
                 }
                 else
                 {
-                    Log($"Rule failed for Person {person.Id} at state {person.CurrentState} with reason: {result.Reason}. Exiting workflow loop.");
+                    Logger.Log($"Rule failed for Person {person.Id} at state {person.CurrentState} with reason: {result.Reason}. Exiting workflow loop.", LogSource.Engine, LogLevel.Error);
                     break;
                 }
             }
@@ -84,7 +84,7 @@ public class WorkflowEngine
 
         await _dbContext.SaveChangesAsync();
 
-        Log("Workflow engine run completed and changes saved.");
+        Logger.Log("Workflow engine run completed and changes saved.");
     }
 
     #endregion
@@ -106,11 +106,6 @@ public class WorkflowEngine
             return states[index + 1];
 
         return null;
-    }
-
-    private void Log(string message)
-    {
-        Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}");
     }
 
     #endregion
