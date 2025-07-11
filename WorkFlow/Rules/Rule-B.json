@@ -1,0 +1,166 @@
+﻿{
+    "name": "Rule B - Validate Announcement Eligibility",
+    "steps": [
+        {
+            "action": "log",
+            "message": "Rule B started for person: @person.Id - @person.Name"
+        },
+        {
+            "action": "fetchList",
+            "entity": "Announcements",
+            "filter": {},
+            "storeAs": "announcements"
+        },
+        {
+            "action": "log",
+            "message": "Fetched @announcements.Count announcements."
+        },
+        {
+            "action": "assign",
+            "variable": "foundValidAnnouncement",
+            "value": false
+        },
+        {
+            "action": "foreach",
+            "source": "announcements",
+            "var": "announcement",
+            "body": [
+                {
+                    "action": "log",
+                    "message": "Checking announcement: @announcement.Id - RequiredAge: @announcement.RequiredAge, WorkType: @announcement.WorkType"
+                },
+                {
+                    "action": "if",
+                    "condition": {
+                        "field": "announcement.RequiredAge",
+                        "operator": "<=",
+                        "value": "@person.Age"
+                    },
+                    "then": [
+                        {
+                            "action": "log",
+                            "message": "Person age (@person.Age) >= RequiredAge. Fetching person's work history..."
+                        },
+                        {
+                            "action": "fetchList",
+                            "entity": "WorkHistories",
+                            "filter": { "PersonId": "@person.Id" },
+                            "storeAs": "personWorkHistories"
+                        },
+                        {
+                            "action": "log",
+                            "message": "Fetched @personWorkHistories.Count work history records."
+                        },
+                        {
+                            "action": "foreach",
+                            "source": "personWorkHistories",
+                            "var": "history",
+                            "body": [
+                                {
+                                    "action": "log",
+                                    "message": "Checking history: @history.Id with WorkType: @history.WorkType"
+                                },
+                                {
+                                    "action": "if",
+                                    "condition": {
+                                        "field": "history.WorkType",
+                                        "operator": "==",
+                                        "value": "@announcement.WorkType"
+                                    },
+                                    "then": [
+                                        {
+                                            "action": "log",
+                                            "message": "WorkType matches announcement. Calculating duration..."
+                                        },
+                                        {
+                                            "action": "calculateDuration",
+                                            "startDate": "history.StartDate",
+                                            "endDate": "history.EndDate",
+                                            "unit": "Years",
+                                            "storeAs": "DurationInYears"
+                                        },
+                                        {
+                                            "action": "log",
+                                            "message": "Calculated duration: @DurationInYears years"
+                                        },
+                                        {
+                                            "action": "if",
+                                            "condition": {
+                                                "field": "DurationInYears",
+                                                "operator": ">=",
+                                                "value": 5
+                                            },
+                                            "then": [
+                                                {
+                                                    "action": "log",
+                                                    "message": "Valid announcement match found (>= 5 years experience)."
+                                                },
+                                                {
+                                                    "action": "assign",
+                                                    "variable": "foundValidAnnouncement",
+                                                    "value": true
+                                                },
+                                                { "action": "break" }
+                                            ],
+                                            "else": [
+                                                {
+                                                    "action": "log",
+                                                    "message": "Duration is less than 5 years. Continuing..."
+                                                },
+                                                { "action": "continue" }
+                                            ]
+                                        }
+                                    ],
+                                    "else": [
+                                        {
+                                            "action": "log",
+                                            "message": "WorkType does not match. Skipping..."
+                                        },
+                                        { "action": "continue" }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "else": [
+                        {
+                            "action": "log",
+                            "message": "Person age < RequiredAge. Skipping announcement."
+                        },
+                        { "action": "continue" }
+                    ]
+                }
+            ]
+        },
+        {
+            "action": "if",
+            "condition": {
+                "field": "foundValidAnnouncement",
+                "operator": "==",
+                "value": true
+            },
+            "then": [
+                {
+                    "action": "log",
+                    "message": "Rule B passed: Valid announcement match found."
+                },
+                {
+                    "action": "stop",
+                    "reason": "Rule B passed: Person matched announcement with 5+ years experience.",
+                    "status": true
+                }
+            ],
+            "else": [
+                {
+                    "action": "log",
+                    "message": "Rule B failed: No valid announcements matched."
+                },
+                {
+                    "action": "stop",
+                    "reason": "Rule B failed: No matching announcement or insufficient experience.",
+                    "status": false
+                }
+            ]
+        }
+    ]
+}
