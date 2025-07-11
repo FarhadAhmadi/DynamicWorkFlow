@@ -1,80 +1,236 @@
-Dynamic Workflow Engine & Rule Interpreter
-A modular, extensible workflow engine for executing dynamic business rules defined in JSON-like DSL, built on .NET Core with Entity Framework Core.
-________________________________________
-Overview
-This project allows defining workflows and business rules as JSON objects that consist of multiple steps, executed sequentially or conditionally. It dynamically interprets these rules, querying the database, evaluating conditions, assigning variables, looping collections, and calculating date durations — all without changing the code.
-________________________________________
-Features
-•	Dynamic Entity Fetching: Retrieve single or list entities from the database using dynamic filters.
-•	Conditional Branching: Supports if-then-else style logic with flexible condition evaluation.
-•	Loops: Iterate over collections with foreach steps.
-•	Variable Assignment: Assign values or results of queries to runtime variables for use in later steps.
-•	Duration Calculation: Calculate date differences in days, months, or years.
-•	Stop Workflow: Ability to stop the workflow execution with custom status and reason.
-•	Extensible Step Handlers: Modular step handlers that can be extended for custom business actions.
-•	Variable Path Resolution: Support nested object property resolution using "dot notation" variables like @person.Name.
-•	Exception Handling: Support for break and continue to control loop flows.
-________________________________________
-Architecture
-Core Components
-•	RuleInterpreter: Orchestrates rule execution by iterating over steps and delegating them to the executor.
-•	RuleStepExecutor: Dispatches each workflow step action to its respective handler.
-•	Step Handlers: Individual classes implementing logic for each action type (fetch, fetchList, foreach, if, assign, calculateDuration, stop, etc.).
-•	VariableResolver: Helper class to resolve variable values dynamically from the current workflow context.
-•	DatabaseContext: EF Core context injected for querying the database dynamically.
-•	Custom Exceptions: BreakException, ContinueException to control flow inside loops.
-________________________________________
-Example Workflow JSON
-json
-CopyEdit
+# 🚀 Dynamic Workflow Engine & Rule Interpreter
+
+A modular, extensible workflow engine for executing dynamic business rules defined in a JSON-like DSL, built on .NET Core with Entity Framework Core.
+
+---
+
+## 📖 Overview
+
+This project enables defining workflows and business rules as JSON objects consisting of multiple steps executed sequentially or conditionally. It dynamically interprets these rules by:
+
+- 🔍 **Querying the database**
+- ⚖️ **Evaluating conditions**
+- 📝 **Assigning variables**
+- 🔄 **Looping over collections**
+- 📅 **Calculating date durations**
+
+All without requiring code changes.
+
+---
+
+## ✨ Features
+
+- 🔎 **Dynamic Entity Fetching:** Retrieve single or list entities from the database with dynamic filters.
+- 🤔 **Conditional Branching:** Supports flexible if-then-else logic.
+- 🔄 **Loops:** Iterate over collections with foreach steps.
+- 🗂 **Variable Assignment:** Assign query results or values to runtime variables for reuse.
+- ⏳ **Duration Calculation:** Calculate date differences in days, months, or years.
+- 🛑 **Stop Workflow:** Stop execution with custom status and reason.
+- 🛠 **Extensible Step Handlers:** Easily add new business logic by implementing custom step handlers.
+- 📌 **Variable Path Resolution:** Supports nested object property access using "dot notation" (e.g. `@person.Name`).
+- 🚦 **Exception Handling:** Control loop flow with support for break and continue.
+
+---
+
+## 🏗 Architecture
+
+### Core Components
+
+- ⚙️ **RuleInterpreter:** Orchestrates rule execution, iterating over steps.
+- 🚦 **RuleStepExecutor:** Dispatches each step to the correct handler.
+- 🧩 **Step Handlers:** Classes implementing actions (`fetch`, `fetchList`, `foreach`, `if`, `assign`, `calculateDuration`, `stop`,`log`, etc.).
+- 🔍 **VariableResolver:** Resolves variable values dynamically within the workflow context.
+- 🗄 **DatabaseContext:** EF Core context for querying data dynamically.
+- 🚨 **Custom Exceptions:** `BreakException`, `ContinueException` to manage loops.
+
+---
+
+## 📝 Example Workflow JSON
+
+```json
 {
-  "steps": [
-    {
-      "action": "fetch",
-      "entity": "Person",
-      "filter": { "Id": 123 },
-      "storeAs": "person"
-    },
-    {
-      "action": "if",
-      "condition": {
-        "field": "person.Age",
-        "operator": ">=",
-        "value": 18
-      },
-      "then": [
+    "name": "Rule A - Validate 1 year تهران experience with confirmed employer",
+    "steps": [
         {
-          "action": "assign",
-          "variable": "Status",
-          "value": true
-        }
-      ],
-      "else": [
+            "action": "log",
+            "message": "Rule A started for person: @person.Id - @person.Name"
+        },
         {
-          "action": "assign",
-          "variable": "Status",
-          "value": false
+            "action": "fetchList",
+            "entity": "WorkHistories",
+            "filter": { "PersonId": "@person.Id" },
+            "storeAs": "histories"
+        },
+        {
+            "action": "log",
+            "message": "Fetched @histories.Count work history records."
+        },
+        {
+            "action": "assign",
+            "variable": "foundValidHistory",
+            "value": false
+        },
+        {
+            "action": "foreach",
+            "source": "histories",
+            "var": "history",
+            "body": [
+                {
+                    "action": "log",
+                    "message": "Checking history record: @history.Id at location @history.Location"
+                },
+                {
+                    "action": "if",
+                    "condition": {
+                        "field": "history.Location",
+                        "operator": "==",
+                        "value": "تهران"
+                    },
+                    "then": [
+                        {
+                            "action": "log",
+                            "message": "History is located in تهران, calculating duration..."
+                        },
+                        {
+                            "action": "calculateDuration",
+                            "startDate": "history.StartDate",
+                            "endDate": "history.EndDate",
+                            "unit": "days",
+                            "storeAs": "DurationInDays"
+                        },
+                        {
+                            "action": "log",
+                            "message": "Calculated duration in days: @DurationInDays"
+                        },
+                        {
+                            "action": "if",
+                            "condition": {
+                                "field": "DurationInDays",
+                                "operator": ">=",
+                                "value": 365
+                            },
+                            "then": [
+                                {
+                                    "action": "log",
+                                    "message": "Duration is >= 365 days, checking employer confirmation..."
+                                },
+                                {
+                                    "action": "fetch",
+                                    "entity": "Employers",
+                                    "filter": { "Id": "@history.Employer.Id" },
+                                    "storeAs": "employer"
+                                },
+                                {
+                                    "action": "log",
+                                    "message": "Fetched employer @employer.Name - HasConfirmation: @employer.HasConfirmation"
+                                },
+                                {
+                                    "action": "if",
+                                    "condition": {
+                                        "field": "employer.HasConfirmation",
+                                        "operator": "==",
+                                        "value": true
+                                    },
+                                    "then": [
+                                        {
+                                            "action": "log",
+                                            "message": "Employer is confirmed. Valid history found."
+                                        },
+                                        {
+                                            "action": "assign",
+                                            "variable": "foundValidHistory",
+                                            "value": true
+                                        },
+                                        { "action": "break" }
+                                    ],
+                                    "else": [
+                                        {
+                                            "action": "log",
+                                            "message": "Employer is not confirmed. Stopping rule."
+                                        },
+                                        {
+                                            "action": "stop",
+                                            "reason": "Rule A failed: Employer not confirmed.",
+                                            "status": false
+                                        }
+                                    ]
+                                }
+                            ],
+                            "else": [
+                                {
+                                    "action": "log",
+                                    "message": "Duration is less than 365 days. Continuing loop."
+                                },
+                                { "action": "continue" }
+                            ]
+                        }
+                    ],
+                    "else": [
+                        {
+                            "action": "log",
+                            "message": "Location is not تهران. Skipping this history."
+                        },
+                        { "action": "continue" }
+                    ]
+                }
+            ]
+        },
+        {
+            "action": "if",
+            "condition": {
+                "field": "foundValidHistory",
+                "operator": "==",
+                "value": true
+            },
+            "then": [
+                {
+                    "action": "log",
+                    "message": "Rule A passed: Valid تهران history confirmed."
+                },
+                {
+                    "action": "stop",
+                    "reason": "Rule A passed: 1+ year confirmed work in تهران found.",
+                    "status": true
+                }
+            ],
+            "else": [
+                {
+                    "action": "log",
+                    "message": "Rule A failed: No valid تهران history found."
+                },
+                {
+                    "action": "stop",
+                    "reason": "Rule A failed: No valid تهران work history found.",
+                    "status": false
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
-________________________________________
-Getting Started
-Requirements
-•	.NET Core 6 or later
-•	Entity Framework Core (configured with your database)
-•	Newtonsoft.Json
-Setup
-1.	Clone the repo.
-2.	Setup your DatabaseContext and ensure your entities are properly mapped.
-3.	Inject DatabaseContext into the RuleInterpreter.
-4.	Define your workflows as JSON objects matching the step schema.
-5.	Call RuleInterpreter.ExecuteAsync(dynamicRule) with your rule.
-________________________________________
-Code Snippet Example
-csharp
-CopyEdit
+
+
+
+## 🚀 Getting Started
+
+### Requirements
+
+- 🖥 .NET 6 or later
+- 📦 Entity Framework Core (configured with your database)
+- 📚 Newtonsoft.Json
+
+### Setup
+
+- 🔄 Clone the repository.
+- 🛠 Configure your DatabaseContext and ensure your entities are mapped.
+- 🔌 Inject DatabaseContext into RuleInterpreter.
+- ✍️ Define your workflows as JSON matching the step schema.
+- ▶️ Call `RuleInterpreter.ExecuteAsync(dynamicRule)` to execute your workflow.
+
+---
+
+## 💻 Code Snippet Example
+
+```csharp
 var ruleJson = File.ReadAllText("path/to/rule.json");
 dynamic rule = Newtonsoft.Json.JsonConvert.DeserializeObject(ruleJson);
 
@@ -82,32 +238,5 @@ var ruleInterpreter = new RuleInterpreter(dbContext);
 RuleExecutionResult result = await ruleInterpreter.ExecuteAsync(rule);
 
 Console.WriteLine($"Status: {result.Status}, Reason: {result.Reason}");
-________________________________________
-How to Extend
-1.	Create a new class in StepHandlers implementing the required action.
-2.	Implement ExecuteAsync(dynamic step) method with your custom logic.
-3.	Register the new step action in RuleStepExecutor.ExecuteAsync switch case.
-________________________________________
-Design Considerations
-•	Uses Reflection and Expression Trees for dynamic querying with EF Core.
-•	Supports complex nested variable access using dot notation.
-•	Modular, allowing easy addition of new workflow step types.
-•	Async-await for non-blocking database calls.
-•	Strong error handling and meaningful exceptions.
-________________________________________
-Troubleshooting
-•	Entity Not Found: Ensure your DbContext has the DbSet for the entity name you reference.
-•	Invalid Variable Path: Variable paths must exist in the current _variables dictionary.
-•	Type Conversion Issues: Filters automatically convert types but mismatches may throw exceptions.
-•	Async Method Returns: Step handlers returning Task must not return values; use return Task.CompletedTask.
-________________________________________
-Future Enhancements
-•	Add more complex operators in conditions (AND, OR, nested conditions).
-•	Support parameterized SQL or stored procedures.
-•	Add workflow persistence and state management.
-•	Implement event-based triggers.
-•	Add logging and auditing capabilities.
-________________________________________
-License
-MIT License — free to use and extend.
+
 
