@@ -2,26 +2,30 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using WorkFlow.Persistence;
 using WorkFlow.RuleInterpreter.Helpers;
 
 namespace WorkFlow.RuleInterpreter.StepHandlers.LogStep
 {
     public class LogStep
     {
-        private readonly Dictionary<string, object> _variables;
+        private readonly RuleExecutionContext _ruleExecutionContext;
 
-        public LogStep(Dictionary<string, object> variables)
+        public LogStep(RuleExecutionContext ruleExecutionContext)
         {
-            _variables = variables;
+            _ruleExecutionContext = ruleExecutionContext;
         }
-
-        public Task ExecuteAsync(dynamic step)
+        public async Task ExecuteAsync(dynamic step)
         {
             if (step.message == null)
                 throw new ArgumentException("Log step requires a 'message' property.");
 
             string rawMessage = step.message.ToString();
-            string resolvedMessage = ResolveMessage(rawMessage);
+            string resolvedMessage = rawMessage;
+            if (rawMessage.Contains("[@ruleName]"))
+            {
+                resolvedMessage = ResolveMessage(rawMessage);
+            }
 
             // Optional: allow log level from DSL like { "level": "debug" }
             LogLevel level = LogLevel.Info;
@@ -32,7 +36,7 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.LogStep
 
             Logger.Log(resolvedMessage, LogSource.Rule, level);
 
-            return Task.CompletedTask;
+            return;
         }
 
         private string ResolveMessage(string message)
@@ -40,8 +44,8 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.LogStep
             var regex = new Regex(@"@([a-zA-Z0-9_\.]+)");
             return regex.Replace(message, match =>
             {
-                string path = match.Groups[1].Value;
-                var value = VariableResolver.ResolvePath(_variables, path);
+                string path = match.Groups[0].Value;
+                var value = VariableResolver.ResolvePath(_ruleExecutionContext, path);
                 return value?.ToString() ?? "null";
             });
         }

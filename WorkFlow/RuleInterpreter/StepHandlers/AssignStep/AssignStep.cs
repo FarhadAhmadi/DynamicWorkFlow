@@ -10,11 +10,11 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.AssignStep
 {
     public class AssignStep
     {
-        private readonly Dictionary<string, object> _variables;
+        private readonly RuleExecutionContext _ruleExecutionContext;
 
-        public AssignStep(Dictionary<string, object> variables)
+        public AssignStep(RuleExecutionContext ruleExecutionContext)
         {
-            _variables = variables;
+            _ruleExecutionContext = ruleExecutionContext;
         }
 
         public Task ExecuteAsync(dynamic step)
@@ -25,14 +25,14 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.AssignStep
             object value;
             if (rawValue is string strValue && strValue.Contains("."))
             {
-                value = VariableResolver.ResolvePath(_variables, strValue);
+                value = VariableResolver.ResolvePath(_ruleExecutionContext, strValue);
             }
             else
             {
                 value = rawValue;
             }
 
-            _variables[variableName] = value;
+            _ruleExecutionContext.Set(variableName, value);
             return Task.CompletedTask;
         }
     }

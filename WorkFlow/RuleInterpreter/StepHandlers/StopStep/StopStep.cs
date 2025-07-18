@@ -7,20 +7,12 @@ using WorkFlow.Persistence;
 
 namespace WorkFlow.RuleInterpreter.StepHandlers.StopStep
 {
-
-    public class stopStep
+    public class StopStepHandler
     {
-        private readonly Dictionary<string, object> _variables;
-
-        public stopStep(Dictionary<string, object> variables)
+        public async Task ExecuteAsync(dynamic step, RuleExecutionContext context)
         {
-            _variables = variables;
-        }
-
-        public async Task ExecuteAsync(dynamic step)
-        {
-            _variables["Status"] = step.status;
-            _variables["Reason"] = step.reason?.ToString() ?? "Stopped by rule";
+            context.Set("Status", step.status);
+            context.Set("Reason", step.reason?.ToString() ?? "Stopped by rule");
         }
     }
 }

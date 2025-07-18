@@ -8,13 +8,13 @@ namespace WorkFlow.RuleInterpreter.Helpers
 {
     public static class VariableResolver
     {
-        public static object ResolvePath(Dictionary<string, object> variables, string path)
+        public static object ResolvePath(RuleExecutionContext ruleExecutionContext, string path)
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
 
             var parts = path.Split('.');
-            if (parts.Length == 0 || !variables.TryGetValue(parts[0], out var current))
+            if (parts.Length == 0 || !ruleExecutionContext.TryGet<object>(parts[0], out var current))
                 return null;
 
             for (int i = 1; i < parts.Length; i++)
@@ -31,7 +31,8 @@ namespace WorkFlow.RuleInterpreter.Helpers
             return current;
         }
 
-        public static object EvaluateValue(Dictionary<string, object> variables, object input)
+
+        public static object EvaluateValue(RuleExecutionContext ruleExecutionContext, object input)
         {
             if (input == null)
                 return null;
@@ -41,7 +42,7 @@ namespace WorkFlow.RuleInterpreter.Helpers
             if (str.StartsWith("@"))
             {
                 string path = str.Substring(1); // Remove '@'
-                return ResolvePath(variables, path);
+                return ResolvePath(ruleExecutionContext, path);
             }
 
             return input;

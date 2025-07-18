@@ -12,12 +12,11 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.IfStep
     public class IfStep
     {
         private readonly DatabaseContext _dbContext;
-        private readonly Dictionary<string, object> _variables;
-
-        public IfStep(DatabaseContext dbContext, Dictionary<string, object> variables)
+        private readonly RuleExecutionContext _ruleExecutionContext;
+        public IfStep(DatabaseContext dbContext, RuleExecutionContext ruleExecutionContext)
         {
             _dbContext = dbContext;
-            _variables = variables;
+            _ruleExecutionContext = ruleExecutionContext;
         }
 
         public async Task<bool> ExecuteAsync(dynamic step)
@@ -27,13 +26,13 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.IfStep
             string op = condition.@operator;
             object expectedValue = condition.value;
 
-            object actualValue = VariableResolver.ResolvePath(_variables, fieldPath);
+            object actualValue = VariableResolver.ResolvePath(_ruleExecutionContext, fieldPath);
 
             if (actualValue == null)
                 return false;
 
             // Resolve the dynamic part here
-            expectedValue = VariableResolver.EvaluateValue(_variables, expectedValue);
+            expectedValue = VariableResolver.EvaluateValue(_ruleExecutionContext, expectedValue);
 
             // unwrap JValue if needed
             if (expectedValue is JValue jval)

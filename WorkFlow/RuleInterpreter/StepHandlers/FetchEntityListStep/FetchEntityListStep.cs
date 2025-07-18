@@ -15,12 +15,12 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchEntityListStep
     public class FetchEntityListStep
     {
         private readonly DatabaseContext _dbContext;
-        private readonly Dictionary<string, object> _variables;
+        private readonly RuleExecutionContext _ruleExecutionContext;
 
-        public FetchEntityListStep(DatabaseContext dbContext, Dictionary<string, object> variables)
+        public FetchEntityListStep(DatabaseContext dbContext, RuleExecutionContext ruleExecutionContext)
         {
             _dbContext = dbContext;
-            _variables = variables;
+            _ruleExecutionContext = ruleExecutionContext;
         }
 
         public async Task ExecuteAsync(dynamic step)
@@ -66,7 +66,7 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchEntityListStep
                     string propertyName = filterProp.Key;
                     object rawValue = filterProp.Value;
 
-                    object value = VariableResolver.EvaluateValue(_variables, rawValue);
+                    object value = VariableResolver.EvaluateValue(_ruleExecutionContext, rawValue);
 
                     var parameter = Expression.Parameter(entityType, "x");
                     var property = Expression.PropertyOrField(parameter, propertyName);
@@ -111,8 +111,8 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchEntityListStep
             var resultProperty = task.GetType().GetProperty("Result");
             var list = resultProperty.GetValue(task);
 
-            // ذخیره نتیجه در متغیرها
-            _variables[storeAs] = list;
+            // 5. Store result
+            _ruleExecutionContext.Set(storeAs, list);
         }
     }
 }

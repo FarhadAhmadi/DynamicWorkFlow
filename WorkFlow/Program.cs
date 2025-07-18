@@ -15,6 +15,13 @@ class Program
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Logger.Initialize();
+
+        // Get the base directory of the running app (e.g., bin/Debug/netX.X)
+        string baseDir = AppContext.BaseDirectory;
+
+        // Traverse up to reach the solution directory
+        // Assumes structure: SolutionFolder/ProjectFolder/bin/Debug/... => go up 3 levels
+        string? solutionDir = Directory.GetParent(baseDir)?.Parent?.Parent?.Parent?.FullName;
         try
         {
             Logger.Log("=== Workflow Engine Started ===");
@@ -24,11 +31,14 @@ class Program
             SampleDataInsertor sampleDataInsertor = new(dbContext);
             sampleDataInsertor.InsertAsync();
 
+            RuleExecutionContext ruleExecutionContext = new();
+
 
             #region Execute Workflow
 
-            RuleInterpreter ruleInterpreter = new(dbContext);
-            string rulePath = "C:\\Users\\Farhad-LapTop\\Desktop\\Micro-service\\WorkFlow\\WorkFlow\\Rules";
+            RuleInterpreter ruleInterpreter = new(dbContext, ruleExecutionContext);
+
+            string rulePath = Path.Combine(solutionDir, "Rules");
 
             WorkflowEngine engine = new(dbContext, ruleInterpreter, rulePath);
             await engine.RunAsync();
@@ -73,10 +83,6 @@ class Program
                     Console.ResetColor();
                 }
             }
-
-
-
-
         }
         catch (Exception ex)
         {
@@ -84,7 +90,7 @@ class Program
         }
         finally
         {
-            string filePath = $"WorkflowLog-{DateTime.Now:yyyyMMdd-HHmmss}.log";
+            string filePath = Path.Combine(solutionDir , $"WorkflowLog-{DateTime.Now:yyyyMMdd-HHmmss}.log");
             Logger.SaveLog(filePath);
             Logger.Log($"Log file saved to: {filePath}");
         }

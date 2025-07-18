@@ -51,6 +51,7 @@ public class WorkflowEngine
 
                 var ruleJson = LoadJsonFile(ruleFilePath);
 
+                _ruleInterpreter.SetVariable("@ruleName", ruleJson.variables.ruleName);
                 _ruleInterpreter.SetVariable("person", person);
 
                 Logger.Log($"Executing rule for Person {person.Id} at state {person.CurrentState} using rule file {ruleFilePath}");
@@ -65,7 +66,7 @@ public class WorkflowEngine
 
                     if (nextState != null)
                     {
-                        Logger.Log($"Transitioning Person {person.Id} from state {person.CurrentState} to {nextState}",LogSource.Engine,LogLevel.Success);
+                        Logger.Log($"Transitioning Person {person.Id} from state {person.CurrentState} to {nextState}", LogSource.Engine, LogLevel.Success);
                         person.CurrentState = nextState.Value;
                     }
                     else

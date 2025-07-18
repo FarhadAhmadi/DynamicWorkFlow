@@ -10,11 +10,11 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.CalculateDurationStep
 {
     public class CalculatedurationStep
     {
-        private readonly Dictionary<string, object> _variables;
+        private readonly RuleExecutionContext _ruleExecutionContext;
 
-        public CalculatedurationStep(Dictionary<string, object> variables)
+        public CalculatedurationStep(RuleExecutionContext ruleExecutionContext)
         {
-            _variables = variables;
+            _ruleExecutionContext = ruleExecutionContext;
         }
 
         public Task ExecuteAsync(dynamic step)
@@ -24,8 +24,8 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.CalculateDurationStep
             string storeAs = step.storeAs;
             string unit = step.unit?.ToString()?.ToLower() ?? "days";
 
-            var startDateObj = VariableResolver.ResolvePath(_variables, startDatePath);
-            var endDateObj = VariableResolver.ResolvePath(_variables, endDatePath);
+            var startDateObj = VariableResolver.ResolvePath(_ruleExecutionContext, startDatePath);
+            var endDateObj = VariableResolver.ResolvePath(_ruleExecutionContext, endDatePath);
 
             if (startDateObj is not DateTime startDate || endDateObj is not DateTime endDate)
                 throw new Exception("StartDate or EndDate is not a valid DateTime");
@@ -38,7 +38,7 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.CalculateDurationStep
                 _ => throw new Exception($"Unsupported duration unit: {unit}")
             };
 
-            _variables[storeAs] = duration;
+            _ruleExecutionContext.Set(storeAs, duration);
 
             return Task.CompletedTask;
         }

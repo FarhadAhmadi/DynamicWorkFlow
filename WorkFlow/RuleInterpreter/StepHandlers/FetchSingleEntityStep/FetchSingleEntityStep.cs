@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
@@ -15,14 +16,13 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchSingleEntityStep
     public class FetchSingleEntityStep
     {
         private readonly DatabaseContext _dbContext;
-        private readonly Dictionary<string, object> _variables;
+        private readonly RuleExecutionContext _ruleExecutionContext;
 
-        public FetchSingleEntityStep(DatabaseContext dbContext, Dictionary<string, object> variables)
+        public FetchSingleEntityStep(DatabaseContext dbContext, RuleExecutionContext ruleExecutionContext)
         {
             _dbContext = dbContext;
-            _variables = variables;
+            _ruleExecutionContext = ruleExecutionContext;
         }
-
         public async Task ExecuteAsync(dynamic step)
         {
             string entityName = step.entity;
@@ -46,7 +46,7 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchSingleEntityStep
             // 2. Build IQueryable dynamically
             IQueryable query = (IQueryable)dbSet;
 
-            // 3. Apply filter
+            // 3. Apply filter if exists
             IDictionary<string, object> filterDict = null;
 
             if (filter is JObject jObject)
@@ -69,12 +69,15 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchSingleEntityStep
                     if (rawValue is string strValue && strValue.StartsWith("@"))
                     {
                         string path = strValue.Substring(1);
-                        value = VariableResolver.ResolvePath(_variables, path);
+                        value = VariableResolver.ResolvePath(_ruleExecutionContext, path);
                     }
                     else
                     {
                         value = rawValue;
                     }
+
+                    if (value == null)
+                        throw new Exception($"Filter value for property '{propertyName}' is null");
 
                     var parameter = Expression.Parameter(entityType, "x");
                     var property = Expression.PropertyOrField(parameter, propertyName);
@@ -92,7 +95,7 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchSingleEntityStep
                 }
             }
 
-            // 4. Use SingleOrDefaultAsync dynamically
+            // 4. Execute SingleOrDefaultAsync
             var singleOrDefaultAsyncMethod = typeof(EntityFrameworkQueryableExtensions)
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .FirstOrDefault(m =>
@@ -113,9 +116,8 @@ namespace WorkFlow.RuleInterpreter.StepHandlers.FetchSingleEntityStep
             var resultProperty = task.GetType().GetProperty("Result");
             var result = resultProperty.GetValue(task);
 
-            // 5. Store result
-            _variables[storeAs] = result;
+            // 5. Store result in context
+            _ruleExecutionContext.Set(storeAs, result);
         }
     }
-
 }

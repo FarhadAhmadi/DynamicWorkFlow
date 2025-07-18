@@ -1,131 +1,203 @@
 ﻿{
     "name": "Rule A - Validate 1 year تهران experience with confirmed employer",
+    "variables": {
+        "foundValidHistory": false,
+        "ruleName": "Rule A"
+    },
     "steps": [
         {
+            "id": "start",
             "action": "log",
-            "message": "[Rule A] Starting validation for Person ID: @person.Id, Name: @person.Name"
+            "message": "[@ruleName] Starting validation for Person ID: @person.Id, Name: @person.Name",
+            "next": "fetchHistories"
         },
         {
+            "id": "fetchHistories",
             "action": "fetchList",
             "entity": "WorkHistories",
             "filter": { "PersonId": "@person.Id" },
-            "storeAs": "histories"
+            "storeAs": "histories",
+            "next": "logCount"
         },
         {
+            "id": "logCount",
             "action": "log",
-            "message": "[Rule A] Retrieved @histories.Count work history records for Person ID: @person.Id"
+            "message": "[@ruleName] Retrieved @histories.Count work history records for Person ID: @person.Id",
+            "next": "assignFoundValidFalse"
         },
         {
+            "id": "assignFoundValidFalse",
             "action": "assign",
             "variable": "foundValidHistory",
-            "value": false
+            "value": false,
+            "next": "foreachHistories"
         },
         {
+            "id": "foreachHistories",
             "action": "foreach",
             "source": "histories",
             "var": "history",
             "body": [
-                {
-                    "action": "log",
-                    "message": "[Rule A] Processing history ID: @history.Id | Location: @history.Location | Start: @history.StartDate | End: @history.EndDate"
-                },
-                {
-                    "action": "if",
-                    "condition": {
-                        "field": "history.Location",
-                        "operator": "==",
-                        "value": "تهران"
-                    },
-                    "then": [
-                        {
-                            "action": "log",
-                            "message": "[Rule A] Work history ID @history.Id is in location تهران. Proceeding to calculate duration..."
-                        },
-                        {
-                            "action": "calculateDuration",
-                            "startDate": "history.StartDate",
-                            "endDate": "history.EndDate",
-                            "unit": "days",
-                            "storeAs": "DurationInDays"
-                        },
-                        {
-                            "action": "log",
-                            "message": "[Rule A] Duration for history ID @history.Id: @DurationInDays days"
-                        },
-                        {
-                            "action": "if",
-                            "condition": {
-                                "field": "DurationInDays",
-                                "operator": ">=",
-                                "value": 365
-                            },
-                            "then": [
-                                {
-                                    "action": "log",
-                                    "message": "[Rule A] Duration is >= 365 days. Verifying employer confirmation for Employer ID: @history.Employer.Id"
-                                },
-                                {
-                                    "action": "fetch",
-                                    "entity": "Employers",
-                                    "filter": { "Id": "@history.Employer.Id" },
-                                    "storeAs": "employer"
-                                },
-                                {
-                                    "action": "log",
-                                    "message": "[Rule A] Employer fetched: @employer.Name (ID: @employer.Id), HasConfirmation: @employer.HasConfirmation"
-                                },
-                                {
-                                    "action": "if",
-                                    "condition": {
-                                        "field": "employer.HasConfirmation",
-                                        "operator": "==",
-                                        "value": true
-                                    },
-                                    "then": [
-                                        {
-                                            "action": "log",
-                                            "message": "[Rule A] Employer confirmation is true. Valid work history found. Rule A will pass."
-                                        },
-                                        {
-                                            "action": "assign",
-                                            "variable": "foundValidHistory",
-                                            "value": true
-                                        },
-                                        { "action": "break" }
-                                    ],
-                                    "else": [
-                                        {
-                                            "action": "log",
-                                            "message": "[Rule A] Employer confirmation is false. Rule A will fail for Person ID: @person.Id"
-                                        },
-                                        {
-                                            "action": "stop",
-                                            "reason": "Rule A failed: Employer not confirmed for qualifying history.",
-                                            "status": false
-                                        }
-                                    ]
-                                }
-                            ],
-                            "else": [
-                                {
-                                    "action": "log",
-                                    "message": "[Rule A] Duration is less than 365 days for history ID: @history.Id. Skipping."
-                                },
-                                { "action": "continue" }
-                            ]
-                        }
-                    ],
-                    "else": [
-                        {
-                            "action": "log",
-                            "message": "[Rule A] Location of history ID: @history.Id is not تهران. Skipping."
-                        },
-                        { "action": "continue" }
-                    ]
-                }
-            ]
+                "logHistory",
+                "checkLocation"
+            ],
+            "next": "checkResult"
         },
         {
+            "id": "logHistory",
+            "action": "log",
+            "message": "[@ruleName] Processing history ID: @history.Id | Location: @history.Location | Start: @history.StartDate | End: @history.EndDate",
+            "next": null
+        },
+        {
+            "id": "checkLocation",
+            "action": "if",
+            "condition": {
+                "field": "history.Location",
+                "operator": "==",
+                "value": "تهران"
+            },
+            "then": [
+                "logTehran",
+                "calculateDuration",
+                "logDuration",
+                "checkDuration"
+            ],
+            "else": [
+                "logSkipTehran",
+                "continueStep"
+            ],
+            "next": null
+        },
+        {
+            "id": "logTehran",
+            "action": "log",
+            "message": "[@ruleName] Work history ID @history.Id is in location تهران. Proceeding to calculate duration...",
+            "next": null
+        },
+        {
+            "id": "calculateDuration",
+            "action": "calculateDuration",
+            "startDate": "history.StartDate",
+            "endDate": "history.EndDate",
+            "unit": "days",
+            "storeAs": "DurationInDays",
+            "next": null
+        },
+        {
+            "id": "logDuration",
+            "action": "log",
+            "message": "[@ruleName] Duration for history ID @history.Id: @DurationInDays days",
+            "next": null
+        },
+        {
+            "id": "checkDuration",
+            "action": "if",
+            "condition": {
+                "field": "DurationInDays",
+                "operator": ">=",
+                "value": 365
+            },
+            "then": [
+                "logValidDuration",
+                "fetchEmployer",
+                "logEmployer",
+                "checkEmployerConfirmed"
+            ],
+            "else": [
+                "logInvalidDuration",
+                "continueStep"
+            ],
+            "next": null
+        },
+        {
+            "id": "logValidDuration",
+            "action": "log",
+            "message": "[@ruleName] Duration is >= 365 days. Verifying employer confirmation for Employer ID: @history.Employer.Id",
+            "next": null
+        },
+        {
+            "id": "fetchEmployer",
+            "action": "fetch",
+            "entity": "Employers",
+            "filter": { "Id": "@history.Employer.Id" },
+            "storeAs": "employer",
+            "next": null
+        },
+        {
+            "id": "logEmployer",
+            "action": "log",
+            "message": "[@ruleName] Employer fetched: @employer.Name (ID: @employer.Id), HasConfirmation: @employer.HasConfirmation",
+            "next": null
+        },
+        {
+            "id": "checkEmployerConfirmed",
+            "action": "if",
+            "condition": {
+                "field": "employer.HasConfirmation",
+                "operator": "==",
+                "value": true
+            },
+            "then": [
+                "logEmployerConfirmed",
+                "markSuccess",
+                "breakLoop"
+            ],
+            "else": [
+                "logUnconfirmed",
+                "stopEarlyFailure"
+            ],
+            "next": null
+        },
+        {
+            "id": "logEmployerConfirmed",
+            "action": "log",
+            "message": "[@ruleName] Employer confirmation is true. Valid work history found. Rule A will pass.",
+            "next": null
+        },
+        {
+            "id": "markSuccess",
+            "action": "assign",
+            "variable": "foundValidHistory",
+            "value": true,
+            "next": null
+        },
+        {
+            "id": "breakLoop",
+            "action": "break",
+            "next": null
+        },
+        {
+            "id": "logUnconfirmed",
+            "action": "log",
+            "message": "[@ruleName] Employer confirmation is false. Rule A will fail for Person ID: @person.Id",
+            "next": null
+        },
+        {
+            "id": "stopEarlyFailure",
+            "action": "stop",
+            "reason": "Rule A failed: Employer not confirmed for qualifying history.",
+            "status": false
+        },
+        {
+            "id": "logSkipTehran",
+            "action": "log",
+            "message": "[@ruleName] Location of history ID: @history.Id is not تهران. Skipping.",
+            "next": null
+        },
+        {
+            "id": "logInvalidDuration",
+            "action": "log",
+            "message": "[@ruleName] Duration is less than 365 days for history ID: @history.Id. Skipping.",
+            "next": null
+        },
+        {
+            "id": "continueStep",
+            "action": "continue",
+            "next": null
+        },
+        {
+            "id": "checkResult",
             "action": "if",
             "condition": {
                 "field": "foundValidHistory",
@@ -133,27 +205,38 @@
                 "value": true
             },
             "then": [
-                {
-                    "action": "log",
-                    "message": "[Rule A] Rule passed: Found valid work history in تهران with confirmed employer for at least 1 year."
-                },
-                {
-                    "action": "stop",
-                    "reason": "Rule A passed: 1+ year confirmed work in تهران found.",
-                    "status": true
-                }
+                "logFinalPass",
+                "stopSuccess"
             ],
             "else": [
-                {
-                    "action": "log",
-                    "message": "[Rule A] Rule failed: No valid work history in تهران with confirmed employer found."
-                },
-                {
-                    "action": "stop",
-                    "reason": "Rule A failed: No valid تهران work history found.",
-                    "status": false
-                }
-            ]
+                "logFinalFail",
+                "stopFailure"
+            ],
+            "next": null
+        },
+        {
+            "id": "logFinalPass",
+            "action": "log",
+            "message": "[@ruleName] Rule passed: Found valid work history in تهران with confirmed employer for at least 1 year.",
+            "next": null
+        },
+        {
+            "id": "stopSuccess",
+            "action": "stop",
+            "reason": "Rule A passed: 1+ year confirmed work in تهران found.",
+            "status": true
+        },
+        {
+            "id": "logFinalFail",
+            "action": "log",
+            "message": "[@ruleName] Rule failed: No valid work history in تهران with confirmed employer found.",
+            "next": null
+        },
+        {
+            "id": "stopFailure",
+            "action": "stop",
+            "reason": "Rule A failed: No valid تهران work history found.",
+            "status": false
         }
     ]
 }
