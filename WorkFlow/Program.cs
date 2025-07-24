@@ -90,7 +90,14 @@ class Program
         }
         finally
         {
-            string filePath = Path.Combine(solutionDir , $"WorkflowLog-{DateTime.Now:yyyyMMdd-HHmmss}.log");
+            var dirPath = Path.Combine(solutionDir, "Logs");
+
+            if (!Directory.Exists(dirPath)) 
+            { 
+                Directory.CreateDirectory(dirPath);
+            }
+
+            string filePath =  Path.Combine(dirPath , $"WorkflowLog-{DateTime.Now:yyyyMMdd-HHmmss}.log");
             Logger.SaveLog(filePath);
             Logger.Log($"Log file saved to: {filePath}");
         }

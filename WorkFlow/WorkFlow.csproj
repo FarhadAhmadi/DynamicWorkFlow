@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="RuleAnalyzer\" />
     <Folder Include="RuleInterpreter\StepHandlers\ForEachStep\" />
   </ItemGroup>
 
